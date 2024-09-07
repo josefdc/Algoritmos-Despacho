@@ -1,0 +1,49 @@
+# Ignorar entornos virtuales
+.venv/
+env/
+.env/
+
+# Ignorar archivos de configuración locales
+.env
+.venv/
+
+# Ignorar archivos de compilación de Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.pdb
+
+# Ignorar archivos de caché y bases de datos
+*.sqlite3
+*.db
+
+# Ignorar configuraciones específicas de IDEs y editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Ignorar archivos de logs
+*.log
+logs/
+*.out
+
+# Ignorar archivos de salida de pruebas y coberturas
+htmlcov/
+.coverage
+*.cover
+*.coverage.*
+
+# Ignorar archivos creados por sistemas de construcción o empaquetado
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Ignorar archivos de caché de Jupyter Notebook
+.ipynb_checkpoints/
+
+# Ignorar archivos específicos de sistemas operativos
+.DS_Store
+Thumbs.db
