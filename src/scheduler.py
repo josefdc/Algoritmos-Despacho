@@ -5,7 +5,7 @@ def fifo(processes):
     Algoritmo de planificación FIFO (First In, First Out).
 
     Args:
-        processes (list): Lista de tuplas (ID, tiempo_llegada, tiempo_ejecucion).
+        processes (list): Lista de tuplas (ID, tiempo_llegada, tiempo_ejecucion, prioridad).
 
     Returns:
         gantt_chart (list): Diagrama de Gantt con tuplas (ID, tiempo_inicio, tiempo_fin).
@@ -18,7 +18,7 @@ def fifo(processes):
     metrics = []
 
     for process in sorted_processes:
-        pid, arrival_time, burst_time = process
+        pid, arrival_time, burst_time, _ = process  # Ignoramos el cuarto elemento (prioridad)
         
         # Ajustar el tiempo de inicio si el proceso llega después del tiempo actual
         if start_time < arrival_time:
@@ -43,7 +43,7 @@ def sjf(processes):
     Algoritmo de planificación SJF (Shortest Job First).
 
     Args:
-        processes (list): Lista de tuplas (ID, tiempo_llegada, tiempo_ejecucion).
+        processes (list): Lista de tuplas (ID, tiempo_llegada, tiempo_ejecucion, prioridad).
 
     Returns:
         gantt_chart (list): Diagrama de Gantt con tuplas (ID, tiempo_inicio, tiempo_fin).
@@ -69,7 +69,7 @@ def sjf(processes):
         next_process = min(available_processes, key=lambda x: x[2])
         remaining_processes.remove(next_process)
         
-        pid, arrival_time, burst_time = next_process
+        pid, arrival_time, burst_time, _ = next_process  # Ignoramos el cuarto elemento (prioridad)
         end_time = start_time + burst_time
         gantt_chart.append((pid, start_time, end_time))
         

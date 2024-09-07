@@ -8,7 +8,7 @@ class SchedulerApp(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Algoritmos de Despacho de Procesos')
-        self.setGeometry(100, 100, 1000, 700)
+        self.setGeometry(100, 100, 1200, 800)
 
         # Layouts
         main_layout = QtWidgets.QVBoxLayout()
@@ -48,17 +48,21 @@ class SchedulerApp(QtWidgets.QWidget):
         reset_button.clicked.connect(self.reset_all)
         button_layout.addWidget(reset_button)
 
-        # Tables for processes and results
+        # Combined table for processes and results
         self.table = QtWidgets.QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(['ID', 'Llegada', 'Ejecución', 'Prioridad'])
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(['ID', 'Llegada', 'Ejecución', 'Prioridad', 'Espera', 'Finalización'])
 
-        self.result_table = QtWidgets.QTableWidget()
-        self.result_table.setColumnCount(3)
-        self.result_table.setHorizontalHeaderLabels(['ID', 'Tiempo de Espera', 'Tiempo de Finalización'])
+        # Add all layouts to main layout
+        main_layout.addLayout(input_layout)
+        main_layout.addLayout(button_layout)
+        main_layout.addWidget(self.table)
 
         # Gantt chart widget
         self.gantt_chart = GanttChart(self)
+        self.gantt_chart.setMinimumHeight(300)  # Set a minimum height for better visibility
+        self.gantt_chart.mouseDoubleClickEvent = self.show_gantt_chart_fullscreen  # Connect double click to enlarge the chart
+        main_layout.addWidget(self.gantt_chart)
 
         # Question input for GPT
         self.question_input = QtWidgets.QTextEdit()
@@ -69,17 +73,12 @@ class SchedulerApp(QtWidgets.QWidget):
         ask_button.clicked.connect(self.ask_openai)
         main_layout.addWidget(ask_button)
 
-        # Answer output for GPT responses
-        self.answer_output = QtWidgets.QTextEdit()
+        # Answer output for GPT responses using QTextBrowser for Markdown support
+        self.answer_output = QtWidgets.QTextBrowser()
         self.answer_output.setReadOnly(True)
         main_layout.addWidget(self.answer_output)
 
-        # Add all layouts to main layout
-        main_layout.addLayout(input_layout)
-        main_layout.addLayout(button_layout)
-        main_layout.addWidget(self.table)
-        main_layout.addWidget(self.result_table)
-        main_layout.addWidget(self.gantt_chart)
+        # Set the main layout
         self.setLayout(main_layout)
 
         # Initialize processes list
@@ -111,6 +110,8 @@ class SchedulerApp(QtWidgets.QWidget):
             self.table.setItem(i, 1, QtWidgets.QTableWidgetItem(str(at)))
             self.table.setItem(i, 2, QtWidgets.QTableWidgetItem(str(bt)))
             self.table.setItem(i, 3, QtWidgets.QTableWidgetItem(str(pr)))
+            self.table.setItem(i, 4, QtWidgets.QTableWidgetItem(''))  # Clear waiting time
+            self.table.setItem(i, 5, QtWidgets.QTableWidgetItem(''))  # Clear turnaround time
 
     def generate_gantt(self):
         if not self.processes:
@@ -130,27 +131,31 @@ class SchedulerApp(QtWidgets.QWidget):
         self.show_metrics(metrics)
 
     def show_metrics(self, metrics):
-        self.result_table.setRowCount(len(metrics) + 1)
         total_waiting_time = 0
         total_turnaround_time = 0
+        num_processes = len(metrics)
 
         for i, metric in enumerate(metrics):
             process_id, waiting_time, turnaround_time = metric
-            self.result_table.setItem(i, 0, QtWidgets.QTableWidgetItem(process_id))
-            self.result_table.setItem(i, 1, QtWidgets.QTableWidgetItem(str(waiting_time)))
-            self.result_table.setItem(i, 2, QtWidgets.QTableWidgetItem(str(turnaround_time)))
+            # Find the corresponding process row
+            for row in range(self.table.rowCount()):
+                if self.table.item(row, 0).text() == process_id:
+                    self.table.setItem(row, 4, QtWidgets.QTableWidgetItem(str(waiting_time)))
+                    self.table.setItem(row, 5, QtWidgets.QTableWidgetItem(str(turnaround_time)))
+                    total_waiting_time += waiting_time
+                    total_turnaround_time += turnaround_time
+                    break
 
-            total_waiting_time += waiting_time
-            total_turnaround_time += turnaround_time
-
-        self.result_table.setItem(len(metrics), 0, QtWidgets.QTableWidgetItem('Totales / Promedios'))
-        self.result_table.setItem(len(metrics), 1, QtWidgets.QTableWidgetItem(f'Suma: {total_waiting_time} / Promedio: {total_waiting_time / len(metrics):.2f}'))
-        self.result_table.setItem(len(metrics), 2, QtWidgets.QTableWidgetItem(f'Suma: {total_turnaround_time} / Promedio: {total_turnaround_time / len(metrics):.2f}'))
+        # Mostrar totales y promedios
+        total_row = self.table.rowCount()
+        self.table.insertRow(total_row)
+        self.table.setItem(total_row, 0, QtWidgets.QTableWidgetItem('Totales / Promedios'))
+        self.table.setItem(total_row, 4, QtWidgets.QTableWidgetItem(f'Suma: {total_waiting_time}, Promedio: {total_waiting_time / num_processes:.2f}'))
+        self.table.setItem(total_row, 5, QtWidgets.QTableWidgetItem(f'Suma: {total_turnaround_time}, Promedio: {total_turnaround_time / num_processes:.2f}'))
 
     def reset_all(self):
         self.processes.clear()
         self.table.setRowCount(0)
-        self.result_table.setRowCount(0)
         self.gantt_chart.ax.clear()
         self.gantt_chart.draw()
         QtWidgets.QMessageBox.information(self, 'Reiniciar', 'Todos los datos han sido reiniciados.')
@@ -161,30 +166,58 @@ class SchedulerApp(QtWidgets.QWidget):
         if question.strip():
             context = self.generate_context()
             answer = ask_openai(context, question)
-            self.answer_output.setText(answer)
+            # Set answer with Markdown support
+            self.answer_output.setMarkdown(answer)
         else:
             QtWidgets.QMessageBox.warning(self, 'Error', 'Por favor, ingrese una pregunta.')
 
     def generate_context(self):
-        """Generates a description of the current context of the application."""
-        context = "Procesos actuales en la cola:\n"
+        """Generates a detailed description of the current context of the application."""
+        context = "### Procesos Actuales en la Cola ###\n"
 
+        # Incluir detalles de cada proceso en la cola
         for process in self.processes:
             process_id, arrival_time, burst_time, priority = process
-            context += f"- Proceso {process_id}: Tiempo de Llegada={arrival_time}, Tiempo de Ejecución={burst_time}, Prioridad={priority}\n"
+            context += f"Proceso {process_id}: Llegada={arrival_time}, Ejecución={burst_time}, Prioridad={priority}\n"
 
-        if self.result_table.rowCount() > 0:
-            context += "\nResultados del último algoritmo de planificación:\n"
-            for row in range(self.result_table.rowCount() - 1):
-                process_id = self.result_table.item(row, 0).text()
-                waiting_time = self.result_table.item(row, 1).text()
-                turnaround_time = self.result_table.item(row, 2).text()
-                context += f"- Proceso {process_id}: Tiempo de Espera={waiting_time}, Tiempo de Finalización={turnaround_time}\n"
+        # Incluir resultados de la planificación actual si están disponibles
+        if self.table.rowCount() > 0:
+            context += "\n### Resultados del Último Algoritmo de Planificación ###\n"
+            for row in range(self.table.rowCount() - 1):  # Excluir la última fila de totales/promedios
+                process_id = self.table.item(row, 0).text()
+                waiting_time = self.table.item(row, 4).text()
+                turnaround_time = self.table.item(row, 5).text()
+                context += f"Proceso {process_id}: Espera={waiting_time}, Finalización={turnaround_time}\n"
 
-            total_waiting_time = self.result_table.item(self.result_table.rowCount() - 1, 1).text()
-            total_turnaround_time = self.result_table.item(self.result_table.rowCount() - 1, 2).text()
+            total_waiting_time = self.table.item(self.table.rowCount() - 1, 4).text()
+            total_turnaround_time = self.table.item(self.table.rowCount() - 1, 5).text()
             context += f"Totales / Promedios: Tiempo de Espera={total_waiting_time}, Tiempo de Finalización={total_turnaround_time}\n"
 
-        context += "\nAlgoritmo de planificación utilizado: " + self.algorithm_selection.currentText()
+        # Incluir algoritmo de planificación utilizado
+        context += "\n### Algoritmo de Planificación Utilizado ###\n"
+        context += self.algorithm_selection.currentText()
+
+        # Descripción de la gráfica de Gantt
+        context += "\n\n### Descripción de la Gráfica de Gantt Actual ###\n"
+        if self.gantt_chart.current_schedule:
+            for process_id, start, end in self.gantt_chart.current_schedule:
+                duration = end - start
+                context += f"Proceso {process_id}: Inicio={start}, Fin={end}, Duración={duration} unidades de tiempo\n"
+            total_time = max(end for _, _, end in self.gantt_chart.current_schedule)
+            context += f"Tiempo total en el diagrama de Gantt: {total_time} unidades de tiempo.\n"
+        else:
+            context += "No hay un diagrama de Gantt generado actualmente.\n"
 
         return context
+
+    def show_gantt_chart_fullscreen(self, event):
+        """Show the Gantt chart in a larger window when double-clicked."""
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Diagrama de Gantt Ampliado")
+        dialog.setGeometry(100, 100, 800, 600)
+        gantt_chart_large = GanttChart(dialog)
+        gantt_chart_large.plot_gantt(self.gantt_chart.current_schedule)  # Reutilizar el último horario generado
+        dialog_layout = QtWidgets.QVBoxLayout()
+        dialog_layout.addWidget(gantt_chart_large)
+        dialog.setLayout(dialog_layout)
+        dialog.exec_()
