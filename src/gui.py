@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from gantt_chart import GanttChart
 from openai_client import ask_openai
 from scheduler import fifo, sjf, priority_scheduling
@@ -25,6 +25,7 @@ class SchedulerApp(QtWidgets.QWidget):
         self.arrival_time_input = QtWidgets.QLineEdit()
         self.burst_time_input = QtWidgets.QLineEdit()
         self.priority_input = QtWidgets.QLineEdit()
+        self.priority_input.setPlaceholderText("Ignorado en FIFO/SJF")
 
         input_layout.addWidget(self.process_id_input, 1, 0)
         input_layout.addWidget(self.arrival_time_input, 1, 1)
@@ -38,6 +39,7 @@ class SchedulerApp(QtWidgets.QWidget):
 
         self.algorithm_selection = QtWidgets.QComboBox()
         self.algorithm_selection.addItems(['FIFO', 'SJF', 'Prioridad'])
+        self.algorithm_selection.currentIndexChanged.connect(self.toggle_priority_input)
         button_layout.addWidget(self.algorithm_selection)
 
         generate_button = QtWidgets.QPushButton('Generar Diagrama')
@@ -52,6 +54,22 @@ class SchedulerApp(QtWidgets.QWidget):
         self.table = QtWidgets.QTableWidget()
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(['ID', 'Llegada', 'Ejecución', 'Prioridad', 'Espera', 'Finalización'])
+        self.table.setAlternatingRowColors(True)
+        self.table.setStyleSheet("""
+            QTableWidget::item:selected {
+                background-color: #B3E5FC;
+            }
+            QTableWidget {
+                background-color: #F5F5F5;
+                alternate-background-color: #E0F7FA;
+                selection-background-color: #B2EBF2;
+            }
+            QHeaderView::section {
+                background-color: #0288D1;
+                color: white;
+                font-weight: bold;
+            }
+        """)
 
         main_layout.addLayout(input_layout)
         main_layout.addLayout(button_layout)
@@ -88,13 +106,27 @@ class SchedulerApp(QtWidgets.QWidget):
         self.processes = []
         self.history = []
 
+    def toggle_priority_input(self):
+        """Habilita o deshabilita el campo de prioridad dependiendo del algoritmo seleccionado."""
+        algorithm = self.algorithm_selection.currentText()
+        if algorithm in ['FIFO', 'SJF']:
+            self.priority_input.setDisabled(True)
+            self.priority_input.setText('0')
+        else:
+            self.priority_input.setDisabled(False)
+            self.priority_input.clear()
+
     def add_process(self):
         """Agregar un nuevo proceso a la lista de procesos."""
         try:
             process_id = self.process_id_input.text()
             arrival_time = int(self.arrival_time_input.text())
             burst_time = int(self.burst_time_input.text())
-            priority = int(self.priority_input.text())
+
+            if self.algorithm_selection.currentText() == 'Prioridad':
+                priority = int(self.priority_input.text())
+            else:
+                priority = 0
 
             self.processes.append((process_id, arrival_time, burst_time, priority))
             self.update_table()
@@ -167,8 +199,11 @@ class SchedulerApp(QtWidgets.QWidget):
         total_row = self.table.rowCount()
         self.table.insertRow(total_row)
         self.table.setItem(total_row, 0, QtWidgets.QTableWidgetItem('Totales / Promedios'))
+        self.table.item(total_row, 0).setBackground(QtGui.QColor('#FFEB3B'))
         self.table.setItem(total_row, 4, QtWidgets.QTableWidgetItem(f'Suma: {total_waiting_time}, Promedio: {total_waiting_time / num_processes:.2f}'))
+        self.table.item(total_row, 4).setBackground(QtGui.QColor('#FFEB3B'))
         self.table.setItem(total_row, 5, QtWidgets.QTableWidgetItem(f'Suma: {total_turnaround_time}, Promedio: {total_turnaround_time / num_processes:.2f}'))
+        self.table.item(total_row, 5).setBackground(QtGui.QColor('#FFEB3B'))
 
     def reset_all(self):
         """Reiniciar todos los datos y la interfaz."""
