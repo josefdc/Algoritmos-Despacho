@@ -10,7 +10,12 @@ class GanttChart(FigureCanvas):
         self.setParent(parent)
         plt.style.use('ggplot')
 
+        # Para almacenar el horario actual
+        self.current_schedule = []
+
     def plot_gantt(self, schedule):
+        """Dibuja el diagrama de Gantt basado en el horario proporcionado."""
+        self.current_schedule = schedule  # Almacena el horario actual
         self.ax.clear()
         self.ax.set_xlabel('Tiempo')
         self.ax.set_ylabel('Procesos')
