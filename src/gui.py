@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets, QtCore
-from src.gantt_chart import GanttChart
-from src.openai_client import ask_openai
-from src.scheduler import fifo, sjf, priority_scheduling
+from gantt_chart import GanttChart
+from openai_client import ask_openai
+from scheduler import fifo, sjf, priority_scheduling
 
 
 class SchedulerApp(QtWidgets.QWidget):

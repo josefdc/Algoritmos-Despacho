@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets
-from src.gui import SchedulerApp
+from gui import SchedulerApp
 import sys
 
 def main():
