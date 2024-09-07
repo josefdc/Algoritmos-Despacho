@@ -2,6 +2,10 @@
 
 Este proyecto implementa diversos **algoritmos de despacho de procesos** (FIFO, SJF y Prioridad) a través de una **interfaz gráfica de usuario (GUI)** utilizando **PyQt5**. Además, se integra con **OpenAI** para proporcionar análisis detallados de los resultados obtenidos.
 
+<p align="center">
+  <img src="assets/prueba.jpeg" alt="Demostración de la Aplicación" width="600"/>
+</p>
+
 ## Tabla de Contenidos
 
 1. [Requisitos](#requisitos)
