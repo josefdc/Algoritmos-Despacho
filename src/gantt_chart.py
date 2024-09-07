@@ -25,7 +25,7 @@ class GanttChart(FigureCanvas):
             yticks.append(10 * i + 4.5)
             ylabels.append(process_id)
             self.ax.text(start + (end - start) / 2, 10 * i + 4.5, process_id,
-                         ha='center', va='center', color='white', fontsize=10, weight='bold')
+                        ha='center', va='center', color='white', fontsize=10, weight='bold')
 
         self.ax.set_yticks(yticks)
         self.ax.set_yticklabels(ylabels)
